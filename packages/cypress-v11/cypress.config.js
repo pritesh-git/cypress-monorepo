@@ -1,21 +1,14 @@
 const { defineConfig } = require('cypress')
+const { BASE_CONFIG } = require('../../shared/config/base.config')
 
 module.exports = defineConfig({
+  ...BASE_CONFIG,
   e2e: {
-    baseUrl: 'https://demo.automationtesting.in',
+    ...BASE_CONFIG.e2e,
     
     
     setupNodeEvents(on, config) {
       // Cypress v11 node event listeners
     },
-    watchForFileChanges: false,
-    waitForAnimations: true,
-    chromeWebSecurity: false,
-    blockHosts: [],
-    pageLoadTimeout: 60000,
-    retries: 2,
-    viewportHeight: 600,
-    viewportWidth: 1000,
-    video: false,
   },
 })

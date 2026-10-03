@@ -1,7 +1,9 @@
+const { ROUTES, PAGE_TITLES, SELECTORS } = require('../../../../shared')
+
 describe('Accordion Tab', () => {
   let accordionJson
   beforeEach(() => {
-    cy.visitPage('/Accordion.html')
+    cy.visitPage(ROUTES.ACCORDION)
     cy.fixture('accordion.json').then(data => {
       accordionJson = data
     })
@@ -9,7 +11,7 @@ describe('Accordion Tab', () => {
 
   it('Check element existence', () => {
     accordionJson.menuArray?.id?.forEach(item => {
-      cy.checkExist({ id: `.nav > :nth-child(${item}) > a` }) // Check Menu element existence
+      cy.checkExist({ id: SELECTORS.NAV_LINK(item) }) // Check Menu element existence
     })
     cy.checkExist(accordionJson.title) // Check title existence
     cy.checkExist(accordionJson.title1) // Check Header existence
@@ -33,7 +35,7 @@ describe('Accordion Tab', () => {
   })
 
   it('Check element text', () => {
-    cy.title().should('include', 'Accordion') // Check accordion title text
+    cy.title().should('include', PAGE_TITLES.ACCORDION) // Check accordion title text
     cy.haveText(accordionJson.title) // Check accordion title text
     cy.containText(accordionJson.firstAccordionTitle) // Check accordion 1 title text
     cy.containText(accordionJson.secondAccordionTitle) // Check accordion 2 title text

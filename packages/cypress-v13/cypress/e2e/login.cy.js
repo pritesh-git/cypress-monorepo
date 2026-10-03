@@ -1,7 +1,9 @@
+const { ROUTES } = require('../../../../shared')
+
 describe('Login Page', () => {
   let loginJson
   beforeEach(() => {
-    cy.visitPage('/')
+    cy.visitPage(ROUTES.HOME)
     cy.fixture('login.json').then(data => {
       loginJson = data
     })

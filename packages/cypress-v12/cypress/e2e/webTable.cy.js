@@ -1,20 +1,22 @@
+const { ROUTES, PAGE_TITLES, SELECTORS } = require('../../../../shared')
+
 describe('Web Table Page', () => {
   let webTableJson
   beforeEach(() => {
-    cy.visitPage('/WebTable.html')
+    cy.visitPage(ROUTES.WEBTABLE)
     cy.fixture('webTable.json').then(data => {
       webTableJson = data
     })
   })
 
   it('Should have Text', () => {
-    cy.title().should('include', 'Web Table') // Check title text
+    cy.title().should('include', PAGE_TITLES.WEB_TABLE) // Check title text
     cy.checkExist(webTableJson.navTitle) // Check nav title existence
     cy.containText(webTableJson.title) // Check title text
     cy.containText(webTableJson.point1) // Check point 1 text
     cy.containText(webTableJson.point2) // Check point 2 text
     webTableJson.navArray?.forEach(item => {
-      cy.checkExist({ id: `.nav > :nth-child(${item}) > a` }) // Check nav existence
+      cy.checkExist({ id: SELECTORS.NAV_LINK(item) }) // Check nav existence
     })
   })
 
@@ -32,9 +34,9 @@ describe('Web Table Page', () => {
             valId?.[0].replace('1', '#\\31 ') +
             valId?.slice(1) +
             `-uiGrid-000${i + 5}-menu-button`
-          const iconId = newValId + ' > .ui-grid-icon-angle-down'
-          const menu1 = '#menuitem-0 > .ui-grid-menu-item'
-          const menu2 = '#menuitem-1 > .ui-grid-menu-item'
+          const iconId = newValId + ` > ${SELECTORS.GRID_ICON_DOWN}`
+          const menu1 = SELECTORS.GRID_MENU_ASC
+          const menu2 = SELECTORS.GRID_MENU_DESC
 
           cy.clickButton({ id: iconId }) // Open dropdown menu
           cy.clickButton({ id: menu1 }) // Click on sort in ascending order

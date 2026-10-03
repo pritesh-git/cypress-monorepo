@@ -1,18 +1,20 @@
+const { ROUTES, PAGE_TITLES, SELECTORS } = require('../../../../shared')
+
 describe('Frame Page', () => {
   let frameJson
   beforeEach(() => {
-    cy.visitPage('/Frames.html')
+    cy.visitPage(ROUTES.FRAMES)
     cy.fixture('frame.json').then(data => {
       frameJson = data
     })
   })
 
   it('Check text', () => {
-    cy.title().should('include', 'Frame') // Check header text
+    cy.title().should('include', PAGE_TITLES.FRAME) // Check header text
     cy.checkExist({ id: frameJson.navTitle }) // Check nav title existence
     cy.haveText(frameJson.title) // Check title text
     frameJson.navArray?.forEach(item => {
-      cy.checkExist({ id: `.nav > :nth-child(${item}) > a` }) // Check Menu element existence
+      cy.checkExist({ id: SELECTORS.NAV_LINK(item) }) // Check Menu element existence
     })
   })
 

@@ -1,5 +1,6 @@
 {
   "baseUrl": "https://demo.automationtesting.in",
+  "fixturesFolder": "../../shared/fixtures",
   "env": {},
   "watchForFileChanges": false,
   "waitForAnimations": true,

@@ -4,7 +4,7 @@
  * Cypress Monorepo Multi-Version Parallel Test Runner
  *
  * Runs Cypress test suites in parallel with:
- * - Configurable concurrency pool (default: 7 parallel jobs)
+ * - Configurable concurrency pool (default: 5 parallel jobs)
  * - Clean, non-bulky live progress dashboard
  * - Isolated per-package log redirection (./logs/<package>.log)
  * - Beautiful, structured summary dashboard table (sorted v9 -> v16)
@@ -43,8 +43,8 @@ const isVerbose = args.includes('--verbose') || args.includes('-v') || args.incl
 const shouldBail = args.includes('--bail') || args.includes('-b');
 const isSerial = args.includes('--serial') || args.includes('--sequential');
 
-// Parallel jobs option: --jobs=N, -j=N, --max-jobs=N, default is 7
-let maxJobs = 7;
+// Parallel jobs option: --jobs=N, -j=N, --max-jobs=N, default is 5
+let maxJobs = 5;
 if (isSerial) {
   maxJobs = 1;
 } else {
@@ -52,7 +52,7 @@ if (isSerial) {
   if (jobsArg) {
     const val = parseInt(jobsArg.split('=')[1], 10);
     if (!isNaN(val) && val > 0) {
-      maxJobs = Math.min(val, 7); // capped at max 7 jobs
+      maxJobs = Math.min(val, 5); // capped at max 5 jobs
     }
   }
 }
@@ -206,7 +206,7 @@ function runPackage(pkgName, total) {
       try {
         const pkgData = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
         pkgVersion = pkgData.dependencies?.cypress || pkgData.version || 'unknown';
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const logFile = path.join(logsDir, `${pkgName}.log`);
@@ -294,7 +294,7 @@ function runPackage(pkgName, total) {
         if (shouldBail) {
           isBailing = true;
           for (const [, j] of activeJobs.entries()) {
-            try { j.child.kill(); } catch (e) {}
+            try { j.child.kill(); } catch (e) { }
           }
         }
       }
@@ -491,7 +491,7 @@ async function main() {
   console.log(colors.cyan + colors.bold + '\u255A' + '\u2550'.repeat(70) + '\u255D' + colors.reset);
   console.log(`  ${colors.dim}Target Site:${colors.reset}     https://demo.automationtesting.in`);
   console.log(`  ${colors.dim}Workspace Queue:${colors.reset} ${targetPackages.length} packages (${targetPackages.join(', ')})`);
-  console.log(`  ${colors.dim}Parallel Jobs:${colors.reset}   ${actualConcurrency} concurrent workers (allowed max: 7)`);
+  console.log(`  ${colors.dim}Parallel Jobs:${colors.reset}   ${actualConcurrency} concurrent workers (allowed max: 5)`);
   console.log(`  ${colors.dim}Logs Directory:${colors.reset}  ${logsDir}`);
   console.log(colors.gray + '\u2500'.repeat(72) + colors.reset + '\n');
 

@@ -1,0 +1,13 @@
+const TIMEOUTS = {
+  PAGE_LOAD: 60000,
+  PAGE_VISIT: 10000,
+  ELEMENT_ACTION: 5500,
+  COMMAND_DEFAULT: 10000,
+};
+
+const VIEWPORT = {
+  WIDTH: 1000,
+  HEIGHT: 600,
+};
+
+module.exports = { TIMEOUTS, VIEWPORT };

@@ -1,18 +1,20 @@
+const { ROUTES, PAGE_TITLES, SELECTORS } = require('../../../../shared')
+
 describe('Alert Page', () => {
   let alertJson
   before(() => {
-    cy.visitPage('/Alerts.html')
+    cy.visitPage(ROUTES.ALERTS)
     cy.fixture('alert.json').then(data => {
       alertJson = data
     })
   })
 
   it('Check text', () => {
-    cy.title().should('include', 'Alerts') // Check header text
+    cy.title().should('include', PAGE_TITLES.ALERTS) // Check header text
     cy.checkExist({ id: alertJson.navTitle }) // Check nav title existence
     cy.haveText(alertJson.title) // Check title text
     alertJson.navArray?.forEach(item => {
-      cy.checkExist({ id: `.nav > :nth-child(${item}) > a` }) // Check Menu element existence
+      cy.checkExist({ id: SELECTORS.NAV_LINK(item) }) // Check Menu element existence
     })
   })
 

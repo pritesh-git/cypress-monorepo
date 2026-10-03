@@ -147,3 +147,54 @@ cypress-monorepo/logs/
 ├── cypress-v15.log
 └── cypress-v16.log
 ```
+
+
+---
+
+## 🏛️ Unified Shared Data & Constants Architecture
+
+All static common data, strings, selectors, routes, timeouts, base configurations, and fixtures are centralized within the [`shared/`](shared) module. Individual package test suites and configuration files import from this single source of truth:
+
+```
+shared/
+├── index.js                  <-- Central barrel export
+├── constants/
+│   ├── routes.js             <-- BASE_URL, ROUTES (HOME, ACCORDION, ALERTS, FRAMES, WEBTABLE)
+│   ├── titles.js             <-- PAGE_TITLES (SITE_NAME, ACCORDION, ALERTS, FRAME, WEB_TABLE)
+│   ├── strings.js            <-- ALERT_STRINGS, FRAME_STRINGS, ACCORDION_STRINGS, WEBTABLE_STRINGS
+│   ├── timeouts.js           <-- TIMEOUTS (PAGE_LOAD, PAGE_VISIT, ELEMENT_ACTION), VIEWPORT
+│   ├── selectors.js          <-- Common selectors & helpers (NAV_LINK, GRID_MENU_ASC, etc.)
+│   └── index.js              <-- Re-exports all constants
+├── fixtures/                 <-- Single source of truth for all JSON fixtures
+│   ├── index.js              <-- Programmatic exports
+│   ├── accordion.json
+│   ├── alert.json
+│   ├── frame.json
+│   ├── login.json
+│   ├── register.json
+│   ├── webTable.json
+│   └── example.json
+├── support/
+│   ├── commands.js           <-- Unified custom commands (visitPage, textInput, clickButton, etc.)
+│   ├── e2e.js                <-- Central support file
+│   └── index.d.ts            <-- Central TypeScript typings
+└── config/
+    └── base.config.js        <-- Common Cypress base config (extended by v10-v16)
+```
+
+### Usage in Specs & Configs
+```javascript
+// In test specs:
+const { ROUTES, PAGE_TITLES, SELECTORS } = require('../../../../shared')
+
+cy.visitPage(ROUTES.ACCORDION)
+cy.title().should('include', PAGE_TITLES.ACCORDION)
+
+// In cypress.config.js:
+const { BASE_CONFIG } = require('../../shared/config/base.config')
+
+module.exports = defineConfig({
+  ...BASE_CONFIG,
+  e2e: { ...BASE_CONFIG.e2e }
+})
+```

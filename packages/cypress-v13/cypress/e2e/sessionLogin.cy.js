@@ -1,3 +1,5 @@
+const { ROUTES } = require('../../../../shared')
+
 describe('Session Authentication (Modern Cypress Feature)', () => {
   let loginJson
   beforeEach(() => {
@@ -8,15 +10,14 @@ describe('Session Authentication (Modern Cypress Feature)', () => {
 
   it('Maintains authenticated session with cy.session', () => {
     cy.session('cached-user-session', () => {
-      cy.visitPage('/')
+      cy.visitPage(ROUTES.HOME)
       cy.clickButton(loginJson.openForm)
       cy.textInput(loginJson.email)
       cy.textInput(loginJson.password)
       cy.clickButton(loginJson.loginBtn)
     })
 
-    // Validate page access post session restore
-    cy.visitPage('/')
+    cy.visitPage(ROUTES.HOME)
     cy.title().should('exist')
   })
 })
