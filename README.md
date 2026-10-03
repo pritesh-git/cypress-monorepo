@@ -104,7 +104,37 @@ npm run cy:v9:open
 npm run cy:v9:run
 ```
 
-#### Run All Suites Across Workspaces
-```bash
+### 2. Running Tests Across All Versions (Structured & Summed Up)
+
+The monorepo includes an intelligent, non-bulky test runner (scripts/run-all.js) that captures verbose Cypress noise, stores full logs into individual files, and displays a clean live status line followed by a structured summary dashboard table:
+
+`ash
+# Run all packages with clean progress tracking & summary table:
 npm run cy:all:run
-```
+
+# Run a specific version subset:
+npm run cy:all:run -- --filter=v16
+npm run cy:all:run -- --filter=v12
+
+# Stop immediately on the first failure:
+npm run cy:all:run -- --bail
+
+# Stream raw output if needed for deep debugging:
+npm run cy:all:run -- --verbose
+
+# Fallback to standard raw npm workspaces streaming:
+npm run cy:all:raw
+`
+
+All detailed run outputs are automatically saved to:
+`
+cypress-monorepo/logs/
+├── cypress-v9.log
+├── cypress-v10.log
+├── cypress-v11.log
+├── cypress-v12.log
+├── cypress-v13.log
+├── cypress-v14.log
+├── cypress-v15.log
+└── cypress-v16.log
+`

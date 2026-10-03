@@ -23,7 +23,9 @@
     "cy:v15:run": "npm --workspace=cypress-v15 run cy:headless",
     "cy:v16:open": "npm --workspace=cypress-v16 run cy:e2e",
     "cy:v16:run": "npm --workspace=cypress-v16 run cy:headless",
-    "cy:all:run": "npm run --workspaces cy:headless"
+    "cy:all:run": "node scripts/run-all.js",
+    "cy:all:raw": "npm run --workspaces cy:headless",
+    "cy:summary": "node scripts/run-all.js"
   },
   "keywords": [
     "cypress",
