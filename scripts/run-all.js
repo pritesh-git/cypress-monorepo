@@ -39,7 +39,7 @@ if (!fs.existsSync(logsDir)) {
 
 // Parse CLI flags
 const args = process.argv.slice(2);
-const isVerbose = args.includes('--verbose') || args.includes('-v');
+const isVerbose = args.includes('--verbose') || args.includes('-v') || args.includes('--raw');
 const shouldBail = args.includes('--bail') || args.includes('-b');
 const isSerial = args.includes('--serial') || args.includes('--sequential');
 
