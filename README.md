@@ -10,7 +10,7 @@ Each package implements identical application test patterns for [Automation Test
 
 | Workspace Package | Cypress Version | Config Format | Test Directory | Support File | Key Architectural Features & Upgrades |
 |:---|:---|:---|:---|:---|:---|
-| [`packages/cypress-v9`](packages/cypress-v9) | **9.7.0** | `cypress.json` | `cypress/integration` | `support/index.js` | Legacy configuration format, `cypress/plugins/index.js`, single-session runner |
+| [`packages/cypress-v9`](packages/cypress-v09) | **9.7.0** | `cypress.json` | `cypress/integration` | `support/index.js` | Legacy configuration format, `cypress/plugins/index.js`, single-session runner |
 | [`packages/cypress-v10`](packages/cypress-v10) | **10.11.0** | `cypress.config.js` | `cypress/e2e` | `support/e2e.js` | Introduction of `defineConfig`, native Component Testing, plugin unification in `setupNodeEvents` |
 | [`packages/cypress-v11`](packages/cypress-v11) | **11.2.0** | `cypress.config.js` | `cypress/e2e` | `support/e2e.js` | Component testing GA, enhanced `cy.origin()` multi-domain testing |
 | [`packages/cypress-v12`](packages/cypress-v12) | **12.17.4** | `cypress.config.js` | `cypress/e2e` | `support/e2e.js` | **Test Isolation** by default (`testIsolation: true`), `beforeEach` lifecycle, `cy.session()` GA |
@@ -138,7 +138,7 @@ npm run cy:all:raw
 All detailed run outputs are automatically saved to:
 ```
 cypress-monorepo/logs/
-├── cypress-v9.log
+├── cypress-v09.log
 ├── cypress-v10.log
 ├── cypress-v11.log
 ├── cypress-v12.log
