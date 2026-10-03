@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * Cypress Monorepo Multi-Version Test Runner
+ * Cypress Monorepo Multi-Version Parallel Test Runner
  *
- * Runs Cypress test suites across packages with:
- * - Clean, non-bulky live progress indicators
- * - Automatic log redirection to ./logs/<package>.log
- * - Beautiful, structured summary dashboard table
- * - Failure diagnosis with targeted error extraction
+ * Runs Cypress test suites in parallel with:
+ * - Configurable concurrency pool (default: 7 parallel jobs)
+ * - Clean, non-bulky live progress dashboard
+ * - Isolated per-package log redirection (./logs/<package>.log)
+ * - Beautiful, structured summary dashboard table (sorted v9 -> v16)
+ * - Targeted failure diagnosis with error extraction
  */
 
 const { spawn } = require('child_process');
@@ -26,15 +27,12 @@ const colors = {
   magenta: '\x1b[35m',
   cyan: '\x1b[36m',
   gray: '\x1b[90m',
-  bgRed: '\x1b[41m',
-  bgGreen: '\x1b[42m',
 };
 
 const monorepoRoot = path.resolve(__dirname, '..');
 const packagesDir = path.join(monorepoRoot, 'packages');
 const logsDir = path.join(monorepoRoot, 'logs');
 
-// Ensure logs directory exists
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }
@@ -43,6 +41,23 @@ if (!fs.existsSync(logsDir)) {
 const args = process.argv.slice(2);
 const isVerbose = args.includes('--verbose') || args.includes('-v');
 const shouldBail = args.includes('--bail') || args.includes('-b');
+const isSerial = args.includes('--serial') || args.includes('--sequential');
+
+// Parallel jobs option: --jobs=N, -j=N, --max-jobs=N, default is 7
+let maxJobs = 7;
+if (isSerial) {
+  maxJobs = 1;
+} else {
+  const jobsArg = args.find(a => a.startsWith('--jobs=') || a.startsWith('-j=') || a.startsWith('--max-jobs=') || a.startsWith('--parallel='));
+  if (jobsArg) {
+    const val = parseInt(jobsArg.split('=')[1], 10);
+    if (!isNaN(val) && val > 0) {
+      maxJobs = Math.min(val, 7); // capped at max 7 jobs
+    }
+  }
+}
+
+// Filter option
 const filterArg = args.find(a => a.startsWith('--filter=') || a.startsWith('-f='));
 const filterValue = filterArg ? filterArg.split('=')[1] : null;
 
@@ -70,7 +85,7 @@ function stripAnsi(str) {
   return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '');
 }
 
-// Format duration
+// Format seconds
 function formatSeconds(sec) {
   if (sec < 60) return `${sec.toFixed(1)}s`;
   const mins = Math.floor(sec / 60);
@@ -148,9 +163,41 @@ function parseCypressOutput(rawOutput) {
   };
 }
 
-// Run single package
-function runPackage(pkgName, index, total) {
+// Global active jobs tracking
+const activeJobs = new Map();
+let finishedCount = 0;
+let isBailing = false;
+
+function renderActiveLine() {
+  if (isVerbose || activeJobs.size === 0) return;
+  const items = [];
+  for (const [name, info] of activeJobs.entries()) {
+    const elapsed = Math.round((Date.now() - info.startTime) / 1000);
+    const shortName = name.replace('cypress-', '');
+    const spec = info.currentSpec ? ` (${info.currentSpec.replace('.cy.js', '').replace('.spec.js', '')})` : '';
+    items.push(`${colors.cyan}${shortName}${colors.gray}:${colors.yellow}${elapsed}s${colors.dim}${spec}${colors.reset}`);
+  }
+  const statusLine = `\r  ${colors.cyan}\u23F3 [Running ${activeJobs.size} parallel jobs]${colors.reset} ${items.join(' | ')}   `;
+  process.stdout.write(statusLine);
+}
+
+// Run single package within worker pool
+function runPackage(pkgName, total) {
   return new Promise((resolve) => {
+    if (isBailing) {
+      return resolve({
+        pkgName,
+        pkgVersion: 'skipped',
+        code: 1,
+        isPass: false,
+        durationSec: 0,
+        totalTests: 0,
+        passedTests: 0,
+        failedTests: 0,
+        failedSpecs: ['(cancelled)'],
+      });
+    }
+
     const pkgDir = path.join(packagesDir, pkgName);
     const pkgJsonPath = path.join(pkgDir, 'package.json');
     let pkgVersion = 'unknown';
@@ -168,24 +215,17 @@ function runPackage(pkgName, index, total) {
     const startTime = Date.now();
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
-    const child = spawn(\ run cy:headless, {
+    const child = spawn(`${npmCmd} run cy:headless`, {
       cwd: pkgDir,
       shell: true,
       env: { ...process.env, FORCE_COLOR: '0', CI: '1' },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    let rawOutput = '';
-    let currentSpec = '';
+    const jobInfo = { startTime, currentSpec: '', child };
+    activeJobs.set(pkgName, jobInfo);
 
-    // Active progress line
-    const progressTimer = setInterval(() => {
-      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-      const specNote = currentSpec ? ` (${colors.dim}${currentSpec}${colors.cyan})` : '';
-      process.stdout.write(
-        `\r  ${colors.cyan}\u23F3 [${index}/${total}] ${colors.bold}${pkgName}${colors.reset} ${colors.gray}(Cypress ${pkgVersion})${colors.reset} ... ${colors.yellow}${elapsed}s elapsed${colors.reset}${specNote}   `
-      );
-    }, 400);
+    let rawOutput = '';
 
     child.stdout.on('data', (data) => {
       const text = data.toString();
@@ -197,7 +237,7 @@ function runPackage(pkgName, index, total) {
       } else {
         const specMatch = text.match(/Running:\s+([a-zA-Z0-9_.-]+)/);
         if (specMatch) {
-          currentSpec = specMatch[1];
+          jobInfo.currentSpec = specMatch[1];
         }
       }
     });
@@ -212,27 +252,31 @@ function runPackage(pkgName, index, total) {
     });
 
     child.on('close', (code) => {
-      clearInterval(progressTimer);
+      activeJobs.delete(pkgName);
       logStream.end();
+      finishedCount++;
 
       const durationMs = Date.now() - startTime;
       const durationSec = durationMs / 1000;
       const parsed = parseCypressOutput(rawOutput);
-
       const isPass = code === 0 && parsed.failedTests === 0;
 
-      // Clear line and output structured status line
-      process.stdout.write('\r' + ' '.repeat(100) + '\r');
+      // Clear the live progress line
+      process.stdout.write('\r' + ' '.repeat(130) + '\r');
 
       if (isPass) {
         console.log(
-          `  ${colors.green}\u2714 [${index}/${total}] ${colors.bold}${pkgName}${colors.reset} ${colors.gray}(Cypress ${pkgVersion})${colors.reset} ` +
+          `  ${colors.green}\u2714 [${finishedCount}/${total}]${colors.reset} ` +
+          `${colors.bold}${pkgName.padEnd(12)}${colors.reset} ` +
+          `${colors.gray}(${pkgVersion})${colors.reset} ` +
           `${colors.green}${colors.bold}PASSED${colors.reset} ` +
           `${colors.dim}[${parsed.totalTests || 'all'} tests | ${formatSeconds(durationSec)}]${colors.reset}`
         );
       } else {
         console.log(
-          `  ${colors.red}\u2716 [${index}/${total}] ${colors.bold}${pkgName}${colors.reset} ${colors.gray}(Cypress ${pkgVersion})${colors.reset} ` +
+          `  ${colors.red}\u2716 [${finishedCount}/${total}]${colors.reset} ` +
+          `${colors.bold}${pkgName.padEnd(12)}${colors.reset} ` +
+          `${colors.gray}(${pkgVersion})${colors.reset} ` +
           `${colors.red}${colors.bold}FAILED${colors.reset} ` +
           `${colors.dim}[${parsed.failedTests} failed, ${parsed.passedTests} passed | ${formatSeconds(durationSec)}]${colors.reset}`
         );
@@ -245,8 +289,17 @@ function runPackage(pkgName, index, total) {
             console.log(`    ${colors.dim}Error: ${snippet}${colors.reset}`);
           });
         }
-        console.log(`    ${colors.gray}Log details:${colors.reset} ${colors.cyan}logs/${pkgName}.log${colors.reset}`);
+        console.log(`    ${colors.gray}Full log:${colors.reset} ${colors.cyan}logs/${pkgName}.log${colors.reset}`);
+
+        if (shouldBail) {
+          isBailing = true;
+          for (const [, j] of activeJobs.entries()) {
+            try { j.child.kill(); } catch (e) {}
+          }
+        }
       }
+
+      renderActiveLine();
 
       resolve({
         pkgName,
@@ -263,8 +316,42 @@ function runPackage(pkgName, index, total) {
   });
 }
 
-// Print dashboard table
-function printSummaryTable(results, totalDurationSec) {
+// Parallel Pool Executor
+async function runParallelPool(packages, concurrency) {
+  const results = [];
+  const queue = [...packages];
+  const workers = [];
+
+  const actualConcurrency = Math.min(concurrency, packages.length);
+
+  async function worker() {
+    while (queue.length > 0 && !isBailing) {
+      const pkgName = queue.shift();
+      if (!pkgName) break;
+      const res = await runPackage(pkgName, packages.length);
+      results.push(res);
+      if (shouldBail && !res.isPass) {
+        break;
+      }
+    }
+  }
+
+  for (let i = 0; i < actualConcurrency; i++) {
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
+  return results;
+}
+
+// Print dashboard table (sorted in version order v9 -> v16)
+function printSummaryTable(results, totalWallClockSec, cumulativeSec, actualConcurrency) {
+  const sorted = [...results].sort((a, b) => {
+    const numA = parseInt(a.pkgName.replace('cypress-v', ''), 10) || 0;
+    const numB = parseInt(b.pkgName.replace('cypress-v', ''), 10) || 0;
+    return numA - numB;
+  });
+
   console.log('\n' + colors.cyan + colors.bold + '\u2550'.repeat(82) + colors.reset);
   console.log(colors.bold + '                         \uD83D\uDCCA CYPRESS TEST EXECUTION SUMMARY' + colors.reset);
   console.log(colors.cyan + colors.bold + '\u2550'.repeat(82) + colors.reset);
@@ -321,7 +408,7 @@ function printSummaryTable(results, totalDurationSec) {
   let sumFailed = 0;
   let allPassed = true;
 
-  for (const r of results) {
+  for (const r of sorted) {
     const statusText = r.isPass ? `${colors.green}\u2714 PASS${colors.reset}` : `${colors.red}\u2716 FAIL${colors.reset}`;
     if (!r.isPass) allPassed = false;
 
@@ -362,12 +449,12 @@ function printSummaryTable(results, totalDurationSec) {
   console.log(
     colors.bold +
     `\u2502 ${'TOTAL'.padEnd(colWidths.pkg)} ` +
-    `\u2502 ${`${results.length} versions`.padEnd(colWidths.version)} ` +
+    `\u2502 ${`${sorted.length} versions`.padEnd(colWidths.version)} ` +
     `\u2502 ${totalStatus.padEnd(colWidths.status + 9)} ` +
     `\u2502 ${String(sumTests).padStart(colWidths.tests)} ` +
     `\u2502 ${colors.green}${String(sumPassed).padStart(colWidths.passed)}${colors.reset} ` +
     `\u2502 ${(sumFailed > 0 ? colors.red : colors.gray)}${String(sumFailed).padStart(colWidths.failed)}${colors.reset} ` +
-    `\u2502 ${formatSeconds(totalDurationSec).padStart(colWidths.time)} \u2502` +
+    `\u2502 ${formatSeconds(totalWallClockSec).padStart(colWidths.time)} \u2502` +
     colors.reset
   );
 
@@ -383,41 +470,47 @@ function printSummaryTable(results, totalDurationSec) {
     '\u2518' + colors.reset
   );
 
+  const speedup = cumulativeSec > 0 ? (cumulativeSec / Math.max(totalWallClockSec, 1)).toFixed(1) : '1.0';
+
   console.log('\n' + colors.bold + 'Summary Metrics:' + colors.reset);
-  console.log(`  \u2022 ${colors.cyan}Packages Tested:${colors.reset}   ${results.length}`);
-  console.log(`  \u2022 ${colors.green}Total Passed:${colors.reset}      ${sumPassed}`);
-  console.log(`  \u2022 ${(sumFailed > 0 ? colors.red : colors.gray)}Total Failed:${colors.reset}      ${sumFailed}`);
-  console.log(`  \u2022 ${colors.yellow}Total Execution Time:${colors.reset} ${formatSeconds(totalDurationSec)}`);
-  console.log(`  \u2022 ${colors.blue}Execution Logs:${colors.reset}        logs/`);
+  console.log(`  • ${colors.cyan}Packages Tested:${colors.reset}       ${sorted.length}`);
+  console.log(`  • ${colors.green}Total Tests Passed:${colors.reset}    ${sumPassed}`);
+  console.log(`  • ${(sumFailed > 0 ? colors.red : colors.gray)}Total Tests Failed:${colors.reset}    ${sumFailed}`);
+  console.log(`  • ${colors.yellow}Wall-Clock Time:${colors.reset}       ${formatSeconds(totalWallClockSec)} ${colors.green}(~${speedup}x speedup via ${actualConcurrency} parallel jobs)${colors.reset}`);
+  console.log(`  • ${colors.gray}Cumulative Test Time:${colors.reset}  ${formatSeconds(cumulativeSec)}`);
+  console.log(`  • ${colors.blue}Execution Logs:${colors.reset}        logs/`);
   console.log(colors.cyan + colors.bold + '\u2550'.repeat(82) + colors.reset + '\n');
 }
 
 // Main execution flow
 async function main() {
+  const actualConcurrency = Math.min(maxJobs, targetPackages.length);
+
   console.log('\n' + colors.cyan + colors.bold + '\u2554' + '\u2550'.repeat(70) + '\u2557' + colors.reset);
-  console.log(colors.cyan + colors.bold + '\u2551' + colors.reset + colors.bold + '   \uD83D\uDE80 Cypress Monorepo Multi-Version Test Runner (v9 - v16)           ' + colors.cyan + colors.bold + '\u2551' + colors.reset);
+  console.log(colors.cyan + colors.bold + '\u2551' + colors.reset + colors.bold + `   \uD83D\uDE80 Cypress Monorepo Parallel Test Runner (Max Jobs: ${maxJobs})          `.padEnd(73) + colors.cyan + colors.bold + '\u2551' + colors.reset);
   console.log(colors.cyan + colors.bold + '\u255A' + '\u2550'.repeat(70) + '\u255D' + colors.reset);
   console.log(`  ${colors.dim}Target Site:${colors.reset}     https://demo.automationtesting.in`);
   console.log(`  ${colors.dim}Workspace Queue:${colors.reset} ${targetPackages.length} packages (${targetPackages.join(', ')})`);
+  console.log(`  ${colors.dim}Parallel Jobs:${colors.reset}   ${actualConcurrency} concurrent workers (allowed max: 7)`);
   console.log(`  ${colors.dim}Logs Directory:${colors.reset}  ${logsDir}`);
   console.log(colors.gray + '\u2500'.repeat(72) + colors.reset + '\n');
 
-  const results = [];
+  // Start ticker for live active jobs
+  const ticker = setInterval(() => {
+    renderActiveLine();
+  }, 350);
+
   const suiteStartTime = Date.now();
+  const results = await runParallelPool(targetPackages, maxJobs);
+  clearInterval(ticker);
 
-  for (let i = 0; i < targetPackages.length; i++) {
-    const pkgName = targetPackages[i];
-    const res = await runPackage(pkgName, i + 1, targetPackages.length);
-    results.push(res);
+  // Clear live line before final table
+  process.stdout.write('\r' + ' '.repeat(130) + '\r');
 
-    if (shouldBail && !res.isPass) {
-      console.log(`\n${colors.red}${colors.bold}[BAIL] Stopping test execution due to failure in ${pkgName}.${colors.reset}\n`);
-      break;
-    }
-  }
+  const totalWallClockSec = (Date.now() - suiteStartTime) / 1000;
+  const cumulativeSec = results.reduce((acc, r) => acc + (r.durationSec || 0), 0);
 
-  const totalDurationSec = (Date.now() - suiteStartTime) / 1000;
-  printSummaryTable(results, totalDurationSec);
+  printSummaryTable(results, totalWallClockSec, cumulativeSec, actualConcurrency);
 
   const hasFailures = results.some(r => !r.isPass);
   process.exit(hasFailures ? 1 : 0);

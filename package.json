@@ -25,7 +25,9 @@
     "cy:v16:run": "npm --workspace=cypress-v16 run cy:headless",
     "cy:all:run": "node scripts/run-all.js",
     "cy:all:raw": "npm run --workspaces cy:headless",
-    "cy:summary": "node scripts/run-all.js"
+    "cy:summary": "node scripts/run-all.js",
+    "cy:all:parallel": "node scripts/run-all.js --jobs=7",
+    "cy:all:serial": "node scripts/run-all.js --serial"
   },
   "keywords": [
     "cypress",

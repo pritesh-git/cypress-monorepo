@@ -104,13 +104,22 @@ npm run cy:v9:open
 npm run cy:v9:run
 ```
 
-### 2. Running Tests Across All Versions (Structured & Summed Up)
+### 2. Running Tests in Parallel (Structured & Summed Up)
 
-The monorepo includes an intelligent, non-bulky test runner (scripts/run-all.js) that captures verbose Cypress noise, stores full logs into individual files, and displays a clean live status line followed by a structured summary dashboard table:
+The test runner (`scripts/run-all.js`) executes test suites in parallel using a worker pool with **up to 7 concurrent jobs** to drastically slash execution time, while capturing all verbose Cypress output into individual log files and presenting a live status tracker and structured summary table:
 
-`ash
-# Run all packages with clean progress tracking & summary table:
+```bash
+# Run all packages in parallel (defaults to 7 concurrent workers):
 npm run cy:all:run
+
+# Explicit parallel shortcut:
+npm run cy:all:parallel
+
+# Custom concurrency level (e.g. 4 jobs, allowed max 7):
+npm run cy:all:run -- --jobs=4
+
+# Run sequentially (1 job at a time):
+npm run cy:all:serial
 
 # Run a specific version subset:
 npm run cy:all:run -- --filter=v16
@@ -124,10 +133,10 @@ npm run cy:all:run -- --verbose
 
 # Fallback to standard raw npm workspaces streaming:
 npm run cy:all:raw
-`
+```
 
 All detailed run outputs are automatically saved to:
-`
+```
 cypress-monorepo/logs/
 ├── cypress-v9.log
 ├── cypress-v10.log
@@ -137,4 +146,4 @@ cypress-monorepo/logs/
 ├── cypress-v14.log
 ├── cypress-v15.log
 └── cypress-v16.log
-`
+```
