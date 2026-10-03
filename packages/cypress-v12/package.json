@@ -1,0 +1,16 @@
+{
+  "name": "cypress-v12",
+  "version": "12.17.4",
+  "description": "Cypress automation workspace using Cypress v12.17.4",
+  "main": "cypress.config.js",
+  "scripts": {
+    "cy:e2e": "cypress open",
+    "cy:headless": "cypress run",
+    "test": "cypress run"
+  },
+  "author": "pritesh-git",
+  "license": "MIT",
+  "dependencies": {
+    "cypress": "12.17.4"
+  }
+}

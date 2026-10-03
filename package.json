@@ -1,0 +1,43 @@
+{
+  "name": "cypress-monorepo",
+  "version": "1.0.0",
+  "description": "Enterprise Cypress Monorepo spanning Cypress v9 to v16 with unified test patterns",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "cy:v9:open": "npm --workspace=cypress-v9 run cy:e2e",
+    "cy:v9:run": "npm --workspace=cypress-v9 run cy:headless",
+    "cy:v10:open": "npm --workspace=cypress-v10 run cy:e2e",
+    "cy:v10:run": "npm --workspace=cypress-v10 run cy:headless",
+    "cy:v11:open": "npm --workspace=cypress-v11 run cy:e2e",
+    "cy:v11:run": "npm --workspace=cypress-v11 run cy:headless",
+    "cy:v12:open": "npm --workspace=cypress-v12 run cy:e2e",
+    "cy:v12:run": "npm --workspace=cypress-v12 run cy:headless",
+    "cy:v13:open": "npm --workspace=cypress-v13 run cy:e2e",
+    "cy:v13:run": "npm --workspace=cypress-v13 run cy:headless",
+    "cy:v14:open": "npm --workspace=cypress-v14 run cy:e2e",
+    "cy:v14:run": "npm --workspace=cypress-v14 run cy:headless",
+    "cy:v15:open": "npm --workspace=cypress-v15 run cy:e2e",
+    "cy:v15:run": "npm --workspace=cypress-v15 run cy:headless",
+    "cy:v16:open": "npm --workspace=cypress-v16 run cy:e2e",
+    "cy:v16:run": "npm --workspace=cypress-v16 run cy:headless",
+    "cy:all:run": "npm run --workspaces cy:headless"
+  },
+  "keywords": [
+    "cypress",
+    "monorepo",
+    "e2e-testing",
+    "cypress-v9",
+    "cypress-v10",
+    "cypress-v11",
+    "cypress-v12",
+    "cypress-v13",
+    "cypress-v14",
+    "cypress-v15",
+    "cypress-v16"
+  ],
+  "author": "pritesh-git",
+  "license": "MIT"
+}

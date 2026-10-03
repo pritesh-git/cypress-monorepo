@@ -1,0 +1,16 @@
+{
+  "name": "cypress-v15",
+  "version": "15.21.1",
+  "description": "Cypress automation workspace using Cypress v15.21.1",
+  "main": "cypress.config.js",
+  "scripts": {
+    "cy:e2e": "cypress open",
+    "cy:headless": "cypress run",
+    "test": "cypress run"
+  },
+  "author": "pritesh-git",
+  "license": "MIT",
+  "dependencies": {
+    "cypress": "15.21.1"
+  }
+}

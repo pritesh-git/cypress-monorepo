@@ -1,0 +1,16 @@
+{
+  "name": "cypress-v14",
+  "version": "14.5.4",
+  "description": "Cypress automation workspace using Cypress v14.5.4",
+  "main": "cypress.config.js",
+  "scripts": {
+    "cy:e2e": "cypress open",
+    "cy:headless": "cypress run",
+    "test": "cypress run"
+  },
+  "author": "pritesh-git",
+  "license": "MIT",
+  "dependencies": {
+    "cypress": "14.5.4"
+  }
+}

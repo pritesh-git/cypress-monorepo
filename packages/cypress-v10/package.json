@@ -1,0 +1,16 @@
+{
+  "name": "cypress-v10",
+  "version": "10.11.0",
+  "description": "Cypress automation workspace using Cypress v10.11.0",
+  "main": "cypress.config.js",
+  "scripts": {
+    "cy:e2e": "cypress open",
+    "cy:headless": "cypress run",
+    "test": "cypress run"
+  },
+  "author": "pritesh-git",
+  "license": "MIT",
+  "dependencies": {
+    "cypress": "10.11.0"
+  }
+}
